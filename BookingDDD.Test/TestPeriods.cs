@@ -1,22 +1,24 @@
-namespace BookingDDD.Test
+using BookingDDD.Core.Domain;
+
+namespace BookingDDD.Test;
+
+internal static class TestPeriods
 {
-    using BookingDDD.Core._3_Domain_Model;
+    public static BookingPeriod Create(int startHour, int endHour) =>
+        Create(2026, 6, 15, startHour, endHour);
 
-    internal static class TestPeriods
+    public static BookingPeriod Create(
+        int year,
+        int month,
+        int day,
+        int startHour,
+        int endHour)
     {
-        public static BookingPeriod Create(int startHour, int endHour)
-        {
-            return Create(2026, 6, 1, startHour, endHour);
-        }
+        var result = BookingPeriod.Create(
+            new DateTime(year, month, day, startHour, 0, 0),
+            new DateTime(year, month, day, endHour, 0, 0));
 
-        public static BookingPeriod Create(int year, int month, int day, int startHour, int endHour)
-        {
-            var result = BookingPeriod.Create(
-                new DateTime(year, month, day, startHour, 0, 0),
-                new DateTime(year, month, day, endHour, 0, 0));
-
-            Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
-            return result.Value!;
-        }
+        Assert.That(result.IsSuccess, Is.True, result.ErrorMessage);
+        return result.Value!;
     }
 }

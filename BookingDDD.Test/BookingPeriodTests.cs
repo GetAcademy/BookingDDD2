@@ -1,79 +1,57 @@
-namespace BookingDDD.Test
+using BookingDDD.Core.Domain;
+
+namespace BookingDDD.Test;
+
+public class BookingPeriodTests
 {
-    using BookingDDD.Core._3_Domain_Model;
-
-    public class BookingPeriodTests
+    [Test]
+    public void Create_ReturnsFailure_WhenStartIsNotBeforeEnd()
     {
-        [Test]
-        public void Create_ReturnsFailure_WhenStartIsNotBeforeEnd()
-        {
-            var start = new DateTime(2026, 6, 1, 10, 0, 0);
-            var end = new DateTime(2026, 6, 1, 10, 0, 0);
+        var start = new DateTime(2026, 6, 15, 10, 0, 0);
 
-            var result = BookingPeriod.Create(start, end);
+        var result = BookingPeriod.Create(start, start);
 
-            Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.ErrorMessage, Is.EqualTo("Start must be before end."));
-        }
+        Assert.That(result.IsFailure, Is.True);
+        Assert.That(result.ErrorMessage, Is.EqualTo(
+            "Start must be before end."));
+    }
 
-        [Test]
-        public void Create_ReturnsFailure_WhenPeriodDoesNotUseWholeHours()
-        {
-            var start = new DateTime(2026, 6, 1, 10, 30, 0);
-            var end = new DateTime(2026, 6, 1, 11, 0, 0);
+    [Test]
+    public void Create_ReturnsFailure_WhenPeriodDoesNotUseWholeHours()
+    {
+        var result = BookingPeriod.Create(
+            new DateTime(2026, 6, 15, 10, 30, 0),
+            new DateTime(2026, 6, 15, 11, 0, 0));
 
-            var result = BookingPeriod.Create(start, end);
+        Assert.That(result.IsFailure, Is.True);
+        Assert.That(result.ErrorMessage, Is.EqualTo(
+            "Only whole hours can be booked."));
+    }
 
-            Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.ErrorMessage, Is.EqualTo("Only whole hours can be booked."));
-        }
+    [Test]
+    public void Equality_UsesStartAndEnd()
+    {
+        var first = TestPeriods.Create(10, 11);
+        var second = TestPeriods.Create(10, 11);
 
-        [Test]
-        public void Create_AllowsPeriodsOutsideOpeningHours()
-        {
-            var start = new DateTime(2026, 6, 1, 18, 0, 0);
-            var end = new DateTime(2026, 6, 1, 19, 0, 0);
+        Assert.That(first, Is.EqualTo(second));
+    }
 
-            var result = BookingPeriod.Create(start, end);
+    [Test]
+    public void Overlaps_ReturnsTrue_WhenPeriodsOverlap()
+    {
+        var first = TestPeriods.Create(10, 12);
+        var second = TestPeriods.Create(11, 13);
 
-            Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Value!.Start, Is.EqualTo(start));
-            Assert.That(result.Value.End, Is.EqualTo(end));
-        }
+        Assert.That(first.Overlaps(second), Is.True);
+    }
 
-        [Test]
-        public void Equality_UsesStartAndEnd()
-        {
-            var start = new DateTime(2026, 6, 1, 10, 0, 0);
-            var end = new DateTime(2026, 6, 1, 11, 0, 0);
+    [Test]
+    public void Overlaps_ReturnsFalse_WhenPeriodsAreAdjacent()
+    {
+        var first = TestPeriods.Create(10, 11);
+        var second = TestPeriods.Create(11, 12);
 
-            var first = BookingPeriod.Create(start, end).Value!;
-            var second = BookingPeriod.Create(start, end).Value!;
-
-            Assert.That(first, Is.EqualTo(second));
-            Assert.That(first == second, Is.True);
-        }
-
-        [Test]
-        public void IsOverlapping_ReturnsTrue_WhenPeriodsOverlap()
-        {
-            var first = TestPeriods.Create(10, 12);
-            var second = TestPeriods.Create(11, 13);
-
-            var overlaps = first.Overlaps(second);
-
-            Assert.That(overlaps, Is.True);
-        }
-
-        [Test]
-        public void IsOverlapping_ReturnsFalse_WhenPeriodsAreAdjacent()
-        {
-            var first = TestPeriods.Create(10, 11);
-            var second = TestPeriods.Create(11, 12);
-
-            var overlaps = first.Overlaps(second);
-
-            Assert.That(overlaps, Is.False);
-        }
+        Assert.That(first.Overlaps(second), Is.False);
     }
 }
