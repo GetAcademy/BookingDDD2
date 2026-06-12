@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="BookingDDD.Core/BookingDDD.Core.csproj" />
+  <Project Path="BookingDDD.Test/BookingDDD.Test.csproj" />
+</Solution>
