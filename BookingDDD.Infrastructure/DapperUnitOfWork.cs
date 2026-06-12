@@ -8,8 +8,7 @@ namespace BookingDDD.Infrastructure;
 public sealed class DapperUnitOfWork : IUnitOfWork, IAsyncDisposable
 {
     private readonly SqlServerOptions _options;
-    private SqlConnection? _connection;
-    private DbTransaction? _transaction;
+    private DapperSession? _session;
     private bool _completed;
 
     public DapperUnitOfWork(SqlServerOptions options)
@@ -21,24 +20,24 @@ public sealed class DapperUnitOfWork : IUnitOfWork, IAsyncDisposable
         string sql,
         object? parameters = null)
     {
-        var (connection, transaction) = await GetSessionAsync();
+        var session = await GetSessionAsync();
 
-        return await connection.QuerySingleOrDefaultAsync<T>(
+        return await session.Connection.QuerySingleOrDefaultAsync<T>(
             sql,
             parameters,
-            transaction);
+            session.Transaction);
     }
 
     internal async Task<IReadOnlyList<T>> QueryAsync<T>(
         string sql,
         object? parameters = null)
     {
-        var (connection, transaction) = await GetSessionAsync();
+        var session = await GetSessionAsync();
 
-        var rows = await connection.QueryAsync<T>(
+        var rows = await session.Connection.QueryAsync<T>(
             sql,
             parameters,
-            transaction);
+            session.Transaction);
 
         return rows.AsList();
     }
@@ -47,16 +46,15 @@ public sealed class DapperUnitOfWork : IUnitOfWork, IAsyncDisposable
         string sql,
         object? parameters = null)
     {
-        var (connection, transaction) = await GetSessionAsync();
+        var session = await GetSessionAsync();
 
-        return await connection.ExecuteAsync(
+        return await session.Connection.ExecuteAsync(
             sql,
             parameters,
-            transaction);
+            session.Transaction);
     }
 
-    private async Task<(SqlConnection Connection, DbTransaction Transaction)>
-        GetSessionAsync()
+    private async Task<DapperSession> GetSessionAsync()
     {
         if (_completed)
         {
@@ -64,14 +62,31 @@ public sealed class DapperUnitOfWork : IUnitOfWork, IAsyncDisposable
                 "This unit of work has already completed.");
         }
 
-        if (_connection is null)
+        if (_session is null)
         {
-            _connection = new SqlConnection(_options.ConnectionString);
-            await _connection.OpenAsync();
-            _transaction = await _connection.BeginTransactionAsync();
+            var connection = new SqlConnection(_options.ConnectionString);
+
+            try
+            {
+                await connection.OpenAsync();
+                var transaction =
+                    await connection.BeginTransactionAsync();
+
+                _session = new DapperSession(connection, transaction);
+            }
+            catch
+            {
+                await connection.DisposeAsync();
+                throw;
+            }
         }
 
-        return (_connection, _transaction!);
+        // A shorter alternative is a named tuple:
+        // Task<(SqlConnection Connection, DbTransaction Transaction)>
+        // Then the caller can write:
+        // var (connection, transaction) = await GetSessionAsync();
+        // DapperSession is used here because the two objects share a lifecycle.
+        return _session;
     }
 
     public async Task CommitAsync()
@@ -82,9 +97,9 @@ public sealed class DapperUnitOfWork : IUnitOfWork, IAsyncDisposable
                 "This unit of work has already completed.");
         }
 
-        if (_transaction is not null)
+        if (_session is not null)
         {
-            await _transaction.CommitAsync();
+            await _session.Transaction.CommitAsync();
         }
 
         _completed = true;
@@ -98,9 +113,9 @@ public sealed class DapperUnitOfWork : IUnitOfWork, IAsyncDisposable
             return;
         }
 
-        if (_transaction is not null)
+        if (_session is not null)
         {
-            await _transaction.RollbackAsync();
+            await _session.Transaction.RollbackAsync();
         }
 
         _completed = true;
@@ -119,16 +134,26 @@ public sealed class DapperUnitOfWork : IUnitOfWork, IAsyncDisposable
 
     private async Task DisposeSessionAsync()
     {
-        if (_transaction is not null)
+        if (_session is null)
         {
-            await _transaction.DisposeAsync();
-            _transaction = null;
+            return;
         }
 
-        if (_connection is not null)
+        await _session.DisposeAsync();
+        _session = null;
+    }
+
+    private sealed class DapperSession(
+        SqlConnection connection,
+        DbTransaction transaction) : IAsyncDisposable
+    {
+        public SqlConnection Connection { get; } = connection;
+        public DbTransaction Transaction { get; } = transaction;
+
+        public async ValueTask DisposeAsync()
         {
-            await _connection.DisposeAsync();
-            _connection = null;
+            await Transaction.DisposeAsync();
+            await Connection.DisposeAsync();
         }
     }
 }
