@@ -28,10 +28,8 @@ public sealed class ManualDomainEventDispatcher(
 
                 case BookingCancelled bookingCancelled:
                     await auditBookingCancelled.HandleAsync(bookingCancelled);
-                    await removeBookingFromCalendar.HandleAsync(
-                        bookingCancelled);
-                    await sendBookingCancellation.HandleAsync(
-                        bookingCancelled);
+                    await removeBookingFromCalendar.HandleAsync(bookingCancelled);
+                    await sendBookingCancellation.HandleAsync(bookingCancelled);
                     break;
 
                 default:
