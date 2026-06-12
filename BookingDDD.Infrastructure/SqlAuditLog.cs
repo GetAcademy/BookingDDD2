@@ -11,8 +11,7 @@ public sealed class SqlAuditLog(SqlServerOptions options) : IAuditLog
         string eventName,
         BookingId bookingId,
         ResourceId resourceId,
-        DateTime occurredAtUtc,
-        CancellationToken cancellationToken = default)
+        DateTime occurredAtUtc)
     {
         const string sql = """
             INSERT INTO dbo.AuditLogEntries
@@ -23,8 +22,8 @@ public sealed class SqlAuditLog(SqlServerOptions options) : IAuditLog
 
         await using var connection =
             new SqlConnection(options.ConnectionString);
-        await connection.OpenAsync(cancellationToken);
-        await connection.ExecuteAsync(new CommandDefinition(
+        await connection.OpenAsync();
+        await connection.ExecuteAsync(
             sql,
             new
             {
@@ -33,7 +32,6 @@ public sealed class SqlAuditLog(SqlServerOptions options) : IAuditLog
                 BookingId = bookingId.Value,
                 ResourceId = resourceId.Value,
                 OccurredAtUtc = occurredAtUtc
-            },
-            cancellationToken: cancellationToken));
+            });
     }
 }

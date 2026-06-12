@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BookingDDD.Api\BookingDDD.Api.csproj" />
     <ProjectReference Include="..\BookingDDD.Core\BookingDDD.Core.csproj" />
   </ItemGroup>
 

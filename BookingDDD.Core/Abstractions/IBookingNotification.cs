@@ -8,11 +8,9 @@ public interface IBookingNotification
         BookingId bookingId,
         ResourceId resourceId,
         DateTime start,
-        DateTime end,
-        CancellationToken cancellationToken = default);
+        DateTime end);
 
     Task SendCancelledAsync(
         BookingId bookingId,
-        ResourceId resourceId,
-        CancellationToken cancellationToken = default);
+        ResourceId resourceId);
 }

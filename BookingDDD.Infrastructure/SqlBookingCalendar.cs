@@ -12,8 +12,7 @@ public sealed class SqlBookingCalendar(SqlServerOptions options)
         BookingId bookingId,
         ResourceId resourceId,
         DateTime start,
-        DateTime end,
-        CancellationToken cancellationToken = default)
+        DateTime end)
     {
         const string sql = """
             UPDATE dbo.CalendarEntries
@@ -39,32 +38,24 @@ public sealed class SqlBookingCalendar(SqlServerOptions options)
                 ResourceId = resourceId.Value,
                 StartTime = start,
                 EndTime = end
-            },
-            cancellationToken);
+            });
     }
 
-    public Task RemoveAsync(
-        BookingId bookingId,
-        CancellationToken cancellationToken = default) =>
+    public Task RemoveAsync(BookingId bookingId) =>
         ExecuteAsync(
             """
             DELETE FROM dbo.CalendarEntries
             WHERE BookingId = @BookingId;
             """,
-            new { BookingId = bookingId.Value },
-            cancellationToken);
+            new { BookingId = bookingId.Value });
 
     private async Task ExecuteAsync(
         string sql,
-        object parameters,
-        CancellationToken cancellationToken)
+        object parameters)
     {
         await using var connection =
             new SqlConnection(options.ConnectionString);
-        await connection.OpenAsync(cancellationToken);
-        await connection.ExecuteAsync(new CommandDefinition(
-            sql,
-            parameters,
-            cancellationToken: cancellationToken));
+        await connection.OpenAsync();
+        await connection.ExecuteAsync(sql, parameters);
     }
 }

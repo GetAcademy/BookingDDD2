@@ -2,7 +2,7 @@ namespace BookingDDD.Core.Abstractions;
 
 public interface IUnitOfWork
 {
-    Task CommitAsync(CancellationToken cancellationToken = default);
+    Task CommitAsync();
 
-    Task RollbackAsync(CancellationToken cancellationToken = default);
+    Task RollbackAsync();
 }

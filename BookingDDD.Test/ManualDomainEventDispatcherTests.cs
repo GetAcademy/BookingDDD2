@@ -1,70 +1,82 @@
+using BookingDDD.Api;
 using BookingDDD.Core.Abstractions;
 using BookingDDD.Core.Application;
 using BookingDDD.Core.Domain;
 
 namespace BookingDDD.Test;
 
-public class DomainEventHandlerTests
+public class ManualDomainEventDispatcherTests
 {
     [Test]
-    public async Task BookingCreatedHandlers_RunAllApprovedConsequences()
+    public async Task PublishAsync_CallsAllHardcodedHandlers()
     {
         var auditLog = new FakeAuditLog();
         var calendar = new FakeCalendar();
         var notification = new FakeNotification();
-        var domainEvent = new BookingCreated(
+        var dispatcher = CreateDispatcher(
+            auditLog,
+            calendar,
+            notification);
+        var resourceId = ResourceId.New();
+        var created = new BookingCreated(
             BookingId.New(),
-            ResourceId.New(),
+            resourceId,
             new DateTime(2026, 6, 15, 10, 0, 0),
             new DateTime(2026, 6, 15, 11, 0, 0));
+        var cancelled = new BookingCancelled(
+            created.BookingId,
+            resourceId,
+            created.Start,
+            created.End);
 
-        await new AuditBookingCreatedHandler(auditLog)
-            .HandleAsync(domainEvent);
-        await new AddBookingToCalendarHandler(calendar)
-            .HandleAsync(domainEvent);
-        await new SendBookingConfirmationHandler(notification)
-            .HandleAsync(domainEvent);
+        await dispatcher.PublishAsync([created, cancelled]);
 
         Assert.Multiple(() =>
         {
             Assert.That(auditLog.EventNames, Is.EqualTo(
-                new[] { nameof(BookingCreated) }));
+                new[]
+                {
+                    nameof(BookingCreated),
+                    nameof(BookingCancelled)
+                }));
             Assert.That(calendar.AddedBookingIds, Does.Contain(
-                domainEvent.BookingId));
+                created.BookingId));
+            Assert.That(calendar.RemovedBookingIds, Does.Contain(
+                cancelled.BookingId));
             Assert.That(notification.CreatedBookingIds, Does.Contain(
-                domainEvent.BookingId));
+                created.BookingId));
+            Assert.That(notification.CancelledBookingIds, Does.Contain(
+                cancelled.BookingId));
         });
     }
 
     [Test]
-    public async Task BookingCancelledHandlers_RunAllApprovedConsequences()
+    public void PublishAsync_ThrowsForEventThatWasNotAddedManually()
     {
-        var auditLog = new FakeAuditLog();
-        var calendar = new FakeCalendar();
-        var notification = new FakeNotification();
-        var domainEvent = new BookingCancelled(
-            BookingId.New(),
-            ResourceId.New(),
-            new DateTime(2026, 6, 15, 10, 0, 0),
-            new DateTime(2026, 6, 15, 11, 0, 0));
+        var dispatcher = CreateDispatcher(
+            new FakeAuditLog(),
+            new FakeCalendar(),
+            new FakeNotification());
 
-        await new AuditBookingCancelledHandler(auditLog)
-            .HandleAsync(domainEvent);
-        await new RemoveBookingFromCalendarHandler(calendar)
-            .HandleAsync(domainEvent);
-        await new SendBookingCancellationHandler(notification)
-            .HandleAsync(domainEvent);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(auditLog.EventNames, Is.EqualTo(
-                new[] { nameof(BookingCancelled) }));
-            Assert.That(calendar.RemovedBookingIds, Does.Contain(
-                domainEvent.BookingId));
-            Assert.That(notification.CancelledBookingIds, Does.Contain(
-                domainEvent.BookingId));
-        });
+        Assert.That(
+            async () => await dispatcher.PublishAsync([new UnknownEvent()]),
+            Throws.TypeOf<NotSupportedException>()
+                .With.Message.Contains(nameof(UnknownEvent)));
     }
+
+    private static ManualDomainEventDispatcher CreateDispatcher(
+        IAuditLog auditLog,
+        IBookingCalendar calendar,
+        IBookingNotification notification) =>
+        new(
+            new AuditBookingCreatedHandler(auditLog),
+            new AddBookingToCalendarHandler(calendar),
+            new SendBookingConfirmationHandler(notification),
+            new AuditBookingCancelledHandler(auditLog),
+            new RemoveBookingFromCalendarHandler(calendar),
+            new SendBookingCancellationHandler(notification));
+
+    private sealed record UnknownEvent : IDomainEvent;
 
     private sealed class FakeAuditLog : IAuditLog
     {

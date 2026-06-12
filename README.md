@@ -30,3 +30,17 @@ The SQL script seeds resource
 Audit and calendar handlers write to SQL after the aggregate transaction
 has committed. Notification handlers write simulated confirmations to the
 API console.
+
+## Two domain event dispatchers
+
+`DomainEventDispatcher` uses reflection to find every registered handler for
+an event type.
+
+`ManualDomainEventDispatcher` contains a hardcoded `switch` and explicitly
+calls every known handler. To use it, replace `DomainEventDispatcher` with
+`ManualDomainEventDispatcher` in the `IDomainEventDispatcher` registration in
+`BookingDDD.Api/Program.cs`.
+
+The manual version must be changed whenever a new domain event or handler is
+added. The reflection-based version discovers newly registered handlers
+without changing dispatcher code.

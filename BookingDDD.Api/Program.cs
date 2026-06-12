@@ -18,30 +18,40 @@ builder.Services.AddScoped<IUnitOfWork>(services =>
     services.GetRequiredService<DapperUnitOfWork>());
 builder.Services.AddScoped<IResourceRepository, DapperResourceRepository>();
 builder.Services.AddScoped<BookingService>();
+
+// Reflection-based dispatcher. Replace DomainEventDispatcher with
+// ManualDomainEventDispatcher to demonstrate explicit, hardcoded dispatch.
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 
 builder.Services.AddSingleton<IAuditLog, SqlAuditLog>();
 builder.Services.AddSingleton<IBookingCalendar, SqlBookingCalendar>();
 builder.Services.AddSingleton<IBookingNotification, ConsoleBookingNotification>();
 
+builder.Services.AddTransient<AuditBookingCreatedHandler>();
+builder.Services.AddTransient<AddBookingToCalendarHandler>();
+builder.Services.AddTransient<SendBookingConfirmationHandler>();
+builder.Services.AddTransient<AuditBookingCancelledHandler>();
+builder.Services.AddTransient<RemoveBookingFromCalendarHandler>();
+builder.Services.AddTransient<SendBookingCancellationHandler>();
+
 builder.Services.AddTransient<
-    IDomainEventHandler<BookingCreated>,
-    AuditBookingCreatedHandler>();
+    IDomainEventHandler<BookingCreated>>(services =>
+        services.GetRequiredService<AuditBookingCreatedHandler>());
 builder.Services.AddTransient<
-    IDomainEventHandler<BookingCreated>,
-    AddBookingToCalendarHandler>();
+    IDomainEventHandler<BookingCreated>>(services =>
+        services.GetRequiredService<AddBookingToCalendarHandler>());
 builder.Services.AddTransient<
-    IDomainEventHandler<BookingCreated>,
-    SendBookingConfirmationHandler>();
+    IDomainEventHandler<BookingCreated>>(services =>
+        services.GetRequiredService<SendBookingConfirmationHandler>());
 builder.Services.AddTransient<
-    IDomainEventHandler<BookingCancelled>,
-    AuditBookingCancelledHandler>();
+    IDomainEventHandler<BookingCancelled>>(services =>
+        services.GetRequiredService<AuditBookingCancelledHandler>());
 builder.Services.AddTransient<
-    IDomainEventHandler<BookingCancelled>,
-    RemoveBookingFromCalendarHandler>();
+    IDomainEventHandler<BookingCancelled>>(services =>
+        services.GetRequiredService<RemoveBookingFromCalendarHandler>());
 builder.Services.AddTransient<
-    IDomainEventHandler<BookingCancelled>,
-    SendBookingCancellationHandler>();
+    IDomainEventHandler<BookingCancelled>>(services =>
+        services.GetRequiredService<SendBookingCancellationHandler>());
 
 var app = builder.Build();
 

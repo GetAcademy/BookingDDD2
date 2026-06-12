@@ -19,56 +19,44 @@ public sealed class DapperUnitOfWork : IUnitOfWork, IAsyncDisposable
 
     internal async Task<T?> QuerySingleOrDefaultAsync<T>(
         string sql,
-        object? parameters = null,
-        CancellationToken cancellationToken = default)
+        object? parameters = null)
     {
-        var (connection, transaction) =
-            await GetSessionAsync(cancellationToken);
+        var (connection, transaction) = await GetSessionAsync();
 
         return await connection.QuerySingleOrDefaultAsync<T>(
-            new CommandDefinition(
-                sql,
-                parameters,
-                transaction,
-                cancellationToken: cancellationToken));
+            sql,
+            parameters,
+            transaction);
     }
 
     internal async Task<IReadOnlyList<T>> QueryAsync<T>(
         string sql,
-        object? parameters = null,
-        CancellationToken cancellationToken = default)
+        object? parameters = null)
     {
-        var (connection, transaction) =
-            await GetSessionAsync(cancellationToken);
+        var (connection, transaction) = await GetSessionAsync();
 
         var rows = await connection.QueryAsync<T>(
-            new CommandDefinition(
-                sql,
-                parameters,
-                transaction,
-                cancellationToken: cancellationToken));
+            sql,
+            parameters,
+            transaction);
 
         return rows.AsList();
     }
 
     internal async Task<int> ExecuteAsync(
         string sql,
-        object? parameters = null,
-        CancellationToken cancellationToken = default)
+        object? parameters = null)
     {
-        var (connection, transaction) =
-            await GetSessionAsync(cancellationToken);
+        var (connection, transaction) = await GetSessionAsync();
 
         return await connection.ExecuteAsync(
-            new CommandDefinition(
-                sql,
-                parameters,
-                transaction,
-                cancellationToken: cancellationToken));
+            sql,
+            parameters,
+            transaction);
     }
 
     private async Task<(SqlConnection Connection, DbTransaction Transaction)>
-        GetSessionAsync(CancellationToken cancellationToken)
+        GetSessionAsync()
     {
         if (_completed)
         {
@@ -79,16 +67,14 @@ public sealed class DapperUnitOfWork : IUnitOfWork, IAsyncDisposable
         if (_connection is null)
         {
             _connection = new SqlConnection(_options.ConnectionString);
-            await _connection.OpenAsync(cancellationToken);
-            _transaction = await _connection.BeginTransactionAsync(
-                cancellationToken);
+            await _connection.OpenAsync();
+            _transaction = await _connection.BeginTransactionAsync();
         }
 
         return (_connection, _transaction!);
     }
 
-    public async Task CommitAsync(
-        CancellationToken cancellationToken = default)
+    public async Task CommitAsync()
     {
         if (_completed)
         {
@@ -98,15 +84,14 @@ public sealed class DapperUnitOfWork : IUnitOfWork, IAsyncDisposable
 
         if (_transaction is not null)
         {
-            await _transaction.CommitAsync(cancellationToken);
+            await _transaction.CommitAsync();
         }
 
         _completed = true;
         await DisposeSessionAsync();
     }
 
-    public async Task RollbackAsync(
-        CancellationToken cancellationToken = default)
+    public async Task RollbackAsync()
     {
         if (_completed)
         {
@@ -115,7 +100,7 @@ public sealed class DapperUnitOfWork : IUnitOfWork, IAsyncDisposable
 
         if (_transaction is not null)
         {
-            await _transaction.RollbackAsync(cancellationToken);
+            await _transaction.RollbackAsync();
         }
 
         _completed = true;

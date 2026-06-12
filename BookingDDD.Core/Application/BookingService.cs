@@ -21,12 +21,9 @@ public sealed class BookingService
 
     public async Task<Result<Booking>> BookAsync(
         ResourceId resourceId,
-        BookingPeriod period,
-        CancellationToken cancellationToken = default)
+        BookingPeriod period)
     {
-        var resource = await _resourceRepository.GetByIdAsync(
-            resourceId,
-            cancellationToken);
+        var resource = await _resourceRepository.GetByIdAsync(resourceId);
 
         if (resource is null)
         {
@@ -39,19 +36,16 @@ public sealed class BookingService
             return result;
         }
 
-        await SaveCommitAndPublishAsync(resource, cancellationToken);
+        await SaveCommitAndPublishAsync(resource);
         return result;
     }
 
     public async Task<Result<Booking>> CancelAsync(
         ResourceId resourceId,
         BookingId bookingId,
-        DateTime now,
-        CancellationToken cancellationToken = default)
+        DateTime now)
     {
-        var resource = await _resourceRepository.GetByIdAsync(
-            resourceId,
-            cancellationToken);
+        var resource = await _resourceRepository.GetByIdAsync(resourceId);
 
         if (resource is null)
         {
@@ -64,27 +58,25 @@ public sealed class BookingService
             return result;
         }
 
-        await SaveCommitAndPublishAsync(resource, cancellationToken);
+        await SaveCommitAndPublishAsync(resource);
         return result;
     }
 
-    private async Task SaveCommitAndPublishAsync(
-        Resource resource,
-        CancellationToken cancellationToken)
+    private async Task SaveCommitAndPublishAsync(Resource resource)
     {
         try
         {
-            await _resourceRepository.SaveAsync(resource, cancellationToken);
-            await _unitOfWork.CommitAsync(cancellationToken);
+            await _resourceRepository.SaveAsync(resource);
+            await _unitOfWork.CommitAsync();
         }
         catch
         {
-            await _unitOfWork.RollbackAsync(cancellationToken);
+            await _unitOfWork.RollbackAsync();
             throw;
         }
 
         var events = resource.DomainEvents.ToArray();
-        await _eventDispatcher.PublishAsync(events, cancellationToken);
+        await _eventDispatcher.PublishAsync(events);
         resource.ClearDomainEvents();
     }
 }

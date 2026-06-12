@@ -9,8 +9,7 @@ public sealed class ConsoleBookingNotification : IBookingNotification
         BookingId bookingId,
         ResourceId resourceId,
         DateTime start,
-        DateTime end,
-        CancellationToken cancellationToken = default)
+        DateTime end)
     {
         Console.WriteLine(
             $"Booking confirmation: {bookingId.Value} for resource " +
@@ -21,8 +20,7 @@ public sealed class ConsoleBookingNotification : IBookingNotification
 
     public Task SendCancelledAsync(
         BookingId bookingId,
-        ResourceId resourceId,
-        CancellationToken cancellationToken = default)
+        ResourceId resourceId)
     {
         Console.WriteLine(
             $"Booking cancellation: {bookingId.Value} for resource " +

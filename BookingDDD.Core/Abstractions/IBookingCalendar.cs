@@ -8,10 +8,7 @@ public interface IBookingCalendar
         BookingId bookingId,
         ResourceId resourceId,
         DateTime start,
-        DateTime end,
-        CancellationToken cancellationToken = default);
+        DateTime end);
 
-    Task RemoveAsync(
-        BookingId bookingId,
-        CancellationToken cancellationToken = default);
+    Task RemoveAsync(BookingId bookingId);
 }

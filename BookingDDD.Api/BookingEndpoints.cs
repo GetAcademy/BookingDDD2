@@ -8,8 +8,7 @@ public static class BookingEndpoints
     public static async Task<IResult> CreateBookingAsync(
         Guid resourceId,
         CreateBookingRequest request,
-        BookingService bookingService,
-        CancellationToken cancellationToken)
+        BookingService bookingService)
     {
         var periodResult = BookingPeriod.Create(request.Start, request.End);
         if (periodResult.IsFailure)
@@ -20,8 +19,7 @@ public static class BookingEndpoints
 
         var result = await bookingService.BookAsync(
             new ResourceId(resourceId),
-            periodResult.Value!,
-            cancellationToken);
+            periodResult.Value!);
 
         return ToHttpResult(result);
     }
@@ -30,14 +28,12 @@ public static class BookingEndpoints
         Guid resourceId,
         Guid bookingId,
         BookingService bookingService,
-        TimeProvider timeProvider,
-        CancellationToken cancellationToken)
+        TimeProvider timeProvider)
     {
         var result = await bookingService.CancelAsync(
             new ResourceId(resourceId),
             new BookingId(bookingId),
-            timeProvider.GetLocalNow().DateTime,
-            cancellationToken);
+            timeProvider.GetLocalNow().DateTime);
 
         return ToHttpResult(result);
     }

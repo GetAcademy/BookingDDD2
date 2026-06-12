@@ -145,14 +145,10 @@ public class BookingServiceTests
     {
         public int SaveCount { get; private set; }
 
-        public Task<Resource?> GetByIdAsync(
-            ResourceId resourceId,
-            CancellationToken cancellationToken = default) =>
+        public Task<Resource?> GetByIdAsync(ResourceId resourceId) =>
             Task.FromResult(resource);
 
-        public Task SaveAsync(
-            Resource aggregate,
-            CancellationToken cancellationToken = default)
+        public Task SaveAsync(Resource aggregate)
         {
             SaveCount++;
             return Task.CompletedTask;
@@ -166,8 +162,7 @@ public class BookingServiceTests
         public bool ThrowOnCommit { get; init; }
         public bool IsCommitted => CommitCount > 0 && !ThrowOnCommit;
 
-        public Task CommitAsync(
-            CancellationToken cancellationToken = default)
+        public Task CommitAsync()
         {
             CommitCount++;
             return ThrowOnCommit
@@ -176,8 +171,7 @@ public class BookingServiceTests
                 : Task.CompletedTask;
         }
 
-        public Task RollbackAsync(
-            CancellationToken cancellationToken = default)
+        public Task RollbackAsync()
         {
             RollbackCount++;
             return Task.CompletedTask;
@@ -193,8 +187,7 @@ public class BookingServiceTests
             Array.Empty<IDomainEvent>();
 
         public Task PublishAsync(
-            IReadOnlyCollection<IDomainEvent> domainEvents,
-            CancellationToken cancellationToken = default)
+            IReadOnlyCollection<IDomainEvent> domainEvents)
         {
             PublishCount++;
             WasCommittedWhenPublished = unitOfWork.IsCommitted;

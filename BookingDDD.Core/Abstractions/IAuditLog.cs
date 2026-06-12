@@ -8,6 +8,5 @@ public interface IAuditLog
         string eventName,
         BookingId bookingId,
         ResourceId resourceId,
-        DateTime occurredAtUtc,
-        CancellationToken cancellationToken = default);
+        DateTime occurredAtUtc);
 }

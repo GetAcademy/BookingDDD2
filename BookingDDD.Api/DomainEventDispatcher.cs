@@ -8,8 +8,7 @@ public sealed class DomainEventDispatcher(IServiceProvider services)
     : IDomainEventDispatcher
 {
     public async Task PublishAsync(
-        IReadOnlyCollection<IDomainEvent> domainEvents,
-        CancellationToken cancellationToken = default)
+        IReadOnlyCollection<IDomainEvent> domainEvents)
     {
         foreach (var domainEvent in domainEvents)
         {
@@ -26,7 +25,7 @@ public sealed class DomainEventDispatcher(IServiceProvider services)
             {
                 var task = (Task)handleMethod.Invoke(
                     handler,
-                    [domainEvent, cancellationToken])!;
+                    [domainEvent])!;
                 await task;
             }
         }

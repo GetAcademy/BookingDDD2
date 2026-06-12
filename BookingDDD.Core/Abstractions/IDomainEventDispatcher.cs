@@ -4,7 +4,5 @@ namespace BookingDDD.Core.Abstractions;
 
 public interface IDomainEventDispatcher
 {
-    Task PublishAsync(
-        IReadOnlyCollection<IDomainEvent> domainEvents,
-        CancellationToken cancellationToken = default);
+    Task PublishAsync(IReadOnlyCollection<IDomainEvent> domainEvents);
 }

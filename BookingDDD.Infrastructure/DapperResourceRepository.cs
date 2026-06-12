@@ -12,9 +12,7 @@ public sealed class DapperResourceRepository : IResourceRepository
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Resource?> GetByIdAsync(
-        ResourceId resourceId,
-        CancellationToken cancellationToken = default)
+    public async Task<Resource?> GetByIdAsync(ResourceId resourceId)
     {
         const string resourceSql = """
             SELECT Id, Name, OpensAtHour, ClosesAtHour
@@ -32,8 +30,7 @@ public sealed class DapperResourceRepository : IResourceRepository
         var resourceRow =
             await _unitOfWork.QuerySingleOrDefaultAsync<ResourceRow>(
                 resourceSql,
-                new { Id = resourceId.Value },
-                cancellationToken);
+                new { Id = resourceId.Value });
 
         if (resourceRow is null)
         {
@@ -42,8 +39,7 @@ public sealed class DapperResourceRepository : IResourceRepository
 
         var bookingRows = await _unitOfWork.QueryAsync<BookingRow>(
             bookingsSql,
-            new { ResourceId = resourceId.Value },
-            cancellationToken);
+            new { ResourceId = resourceId.Value });
 
         var bookings = bookingRows.Select(ToDomain).ToArray();
 
@@ -56,9 +52,7 @@ public sealed class DapperResourceRepository : IResourceRepository
             bookings);
     }
 
-    public async Task SaveAsync(
-        Resource resource,
-        CancellationToken cancellationToken = default)
+    public async Task SaveAsync(Resource resource)
     {
         const string updateResourceSql = """
             UPDATE dbo.Resources
@@ -93,8 +87,7 @@ public sealed class DapperResourceRepository : IResourceRepository
                 resource.Name,
                 resource.OpeningHours.OpensAtHour,
                 resource.OpeningHours.ClosesAtHour
-            },
-            cancellationToken);
+            });
 
         foreach (var booking in resource.Bookings)
         {
@@ -107,8 +100,7 @@ public sealed class DapperResourceRepository : IResourceRepository
                     StartTime = booking.Period.Start,
                     EndTime = booking.Period.End,
                     Status = (byte)booking.Status
-                },
-                cancellationToken);
+                });
         }
     }
 
